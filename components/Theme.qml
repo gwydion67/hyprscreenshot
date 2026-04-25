@@ -44,6 +44,7 @@ Item {
 
     function updateColors(c) {
         if (!c) return;
+        console.log("[Debug - Theme] Updating colors with primary:", c.primary || c.accent);
         accentColor = normalizeHex(c.primary || c.accent, accentColor);
         accentText  = normalizeHex(c.onPrimary || c.onAccent, accentText);
         bgColor     = normalizeHex(c.background, bgColor);
@@ -62,14 +63,16 @@ Item {
     function loadConfig(text) {
         try {
             var cfg = JSON.parse(text);
+            console.log("[Debug - Theme] Config loaded. forceConfigTheme:", !!cfg.forceConfigTheme);
             theme.forceConfigTheme = !!cfg.forceConfigTheme;
             theme.customSchemePath = cfg.customSchemePath || "";
             if (cfg.colors) updateColors(cfg.colors);
             updateSchemeWatching();
-        } catch (e) { console.log("[Theme] Config error:", e.message); }
+        } catch (e) { console.log("[Error - Theme] Config error:", e.message); }
     }
 
     function createDefaultConfig() {
+        console.log("[Debug - Theme] Creating default config...");
         var text = JSON.stringify({ "forceConfigTheme": false, "customSchemePath": "", "colors": defaults }, null, 4);
         var esc = text.replace(/'/g, "'\\''");
         configWriter.command = ["bash", "-c", "mkdir -p $(dirname '" + configPath + "') && echo '" + esc + "' > '" + configPath + "'"];
@@ -81,6 +84,7 @@ Item {
     function updateSchemeWatching() {
         var target = (theme.forceConfigTheme && theme.customSchemePath) ? theme.customSchemePath : theme.caelestiaPath;
         if (target !== schemeFile.path) {
+            console.log("[Debug - Theme] Switching scheme source to:", target);
             schemeFile.path = target;
             schemeFile.reload();
         }
@@ -103,7 +107,12 @@ Item {
         id: schemeFile
         path: theme.caelestiaPath
         watchChanges: true
-        onLoaded: if (!theme.forceConfigTheme) theme.updateColors(JSON.parse(text()).colours || JSON.parse(text()).colors || JSON.parse(text()))
+        onLoaded: {
+            if (!theme.forceConfigTheme) {
+                console.log("[Debug - Theme] Scheme file loaded");
+                theme.updateColors(JSON.parse(text()).colours || JSON.parse(text()).colors || JSON.parse(text()));
+            }
+        }
     }
 
     Component.onCompleted: reload()
