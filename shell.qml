@@ -22,8 +22,8 @@ ShellRoot {
     property int countdown: 0
     
     // Dependency State
-    property bool hyprshotInstalled: true
-    property bool swappyInstalled: true
+    property bool hyprshotInstalled: false
+    property bool swappyInstalled: false
     readonly property bool dependenciesMet: hyprshotInstalled && swappyInstalled
 
     // ── Theme ──────────────────────────────────────────────────────────────
@@ -34,29 +34,28 @@ ShellRoot {
     // ── Dependency Check ──────────────────────────────────────────────────
     Process {
         id: checkHyprshot
-        command: ["bash", "-c", "if command -v hyprshot >/dev/null; then echo 0; else echo 1; fi"]
-        running: true
+        command: ["bash", "-c", "if which hyprshot >/dev/null 2>&1; then echo -n 'YES'; else echo -n 'NO'; fi"]
         stdout: StdioCollector {
             onRead: (data) => {
-                root.hyprshotInstalled = (data.trim() === "0");
-                console.log("[Debug] hyprshot check result:", data.trim());
+                console.log("[Debug] hyprshot check result:", data);
+                root.hyprshotInstalled = (data.trim() === "YES");
             }
         }
     }
     Process {
         id: checkSwappy
-        command: ["bash", "-c", "if command -v swappy >/dev/null; then echo 0; else echo 1; fi"]
-        running: true
+        command: ["bash", "-c", "if which swappy >/dev/null 2>&1; then echo -n 'YES'; else echo -n 'NO'; fi"]
         stdout: StdioCollector {
             onRead: (data) => {
-                root.swappyInstalled = (data.trim() === "0");
-                console.log("[Debug] swappy check result:", data.trim());
+                console.log("[Debug] swappy check result:", data);
+                root.swappyInstalled = (data.trim() === "YES");
             }
         }
     }
 
     Component.onCompleted: {
-        // Processes start automatically due to running: true
+        checkHyprshot.running = true;
+        checkSwappy.running = true;
     }
 
     // ── Processes ──────────────────────────────────────────────────────────
