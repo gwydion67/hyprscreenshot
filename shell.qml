@@ -21,10 +21,14 @@ ShellRoot {
     property bool isCapturing: false
     property int countdown: 0
     
-    // Dependency State
+    // Dependency State (Explicitly reactive)
     property bool hyprshotInstalled: false
     property bool swappyInstalled: false
-    readonly property bool dependenciesMet: hyprshotInstalled && swappyInstalled
+    property bool dependenciesMet: hyprshotInstalled && swappyInstalled
+
+    onHyprshotInstalledChanged: console.log("[Debug] HS property updated:", hyprshotInstalled)
+    onSwappyInstalledChanged: console.log("[Debug] SW property updated:", swappyInstalled)
+    onDependenciesMetChanged: console.log("[Debug] dependenciesMet updated:", dependenciesMet)
 
     // ── Theme ──────────────────────────────────────────────────────────────
     Theme {
@@ -34,13 +38,14 @@ ShellRoot {
     // ── Dependency Check (Reliable File-Based Method) ──────────────────────
     property string depFilePath: "/tmp/hyprscreenshot_deps.json"
     
+    function runDepCheck() {
+        console.log("[Debug] Running dependency check...");
+        depChecker.running = true;
+    }
+
     Process {
         id: depChecker
-        command: ["bash", "-c", "
-            HS=$(which hyprshot >/dev/null 2>&1 && echo true || echo false)
-            SW=$(which swappy >/dev/null 2>&1 && echo true || echo false)
-            echo \"{\\\"hyprshot\\\": $HS, \\\"swappy\\\": $SW}\" > " + root.depFilePath
-        ]
+        command: ["bash", "-c", "HS=$(which hyprshot >/dev/null 2>&1 && echo true || echo false); SW=$(which swappy >/dev/null 2>&1 && echo true || echo false); echo \"{\\\"hyprshot\\\": $HS, \\\"swappy\\\": $SW}\" > " + root.depFilePath]
         onRunningChanged: {
             if (!running) {
                 depFileReader.reload();
@@ -54,17 +59,18 @@ ShellRoot {
         onLoaded: {
             try {
                 var res = JSON.parse(text());
-                root.hyprshotInstalled = res.hyprshot;
-                root.swappyInstalled = res.swappy;
-                console.log(\"[Debug] Deps loaded: hyprshot=\" + res.hyprshot + \", swappy=\" + res.swappy);
+                // Force boolean type casting
+                root.hyprshotInstalled = !!res.hyprshot;
+                root.swappyInstalled = !!res.swappy;
+                console.log("[Debug] File read: hyprshot=" + root.hyprshotInstalled + ", swappy=" + root.swappyInstalled);
             } catch(e) {
-                console.log(\"[Error] Failed to parse dependency file\");
+                console.log("[Error] JSON parse failed for dependencies");
             }
         }
     }
 
     Component.onCompleted: {
-        depChecker.running = true;
+        runDepCheck();
     }
 
     // ── Processes ──────────────────────────────────────────────────────────
@@ -129,13 +135,13 @@ ShellRoot {
         function toggle() {
             if (!mainWindow.visible) {
                 theme.reload();
-                depChecker.running = true; // Re-check dependencies on toggle
+                runDepCheck();
             }
             mainWindow.visible = !mainWindow.visible;
         }
         function open() {
             theme.reload();
-            depChecker.running = true;
+            runDepCheck();
             mainWindow.visible = true;
         }
         function close() {
@@ -151,13 +157,13 @@ ShellRoot {
         visible: false
 
         implicitWidth: 420
-        implicitHeight: !root.dependenciesMet ? 250 : (root.isCapturing ? 230 : 420)
+        implicitHeight: !root.dependenciesMet ? 280 : (root.isCapturing ? 230 : 420)
 
         color: "transparent"
         onVisibleChanged: {
             if (visible) {
                 theme.reload();
-                depChecker.running = true;
+                runDepCheck();
             }
         }
 
@@ -172,7 +178,6 @@ ShellRoot {
             border.width: 1
             clip: true
 
-            // Rim light highlight
             Rectangle {
                 anchors { top: parent.top; left: parent.left; right: parent.right }
                 height: 1
@@ -183,13 +188,11 @@ ShellRoot {
                 anchors { fill: parent; margins: 20 }
                 spacing: 0
 
-                // ── Header ──────────────────────────────────────────────
                 Header {
                     theme: theme
                     onCloseClicked: mainWindow.visible = false
                 }
 
-                // ── Content Area Wrapper ─────────────────────────────────
                 Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -198,11 +201,11 @@ ShellRoot {
                     ColumnLayout {
                         anchors.fill: parent
                         visible: !root.dependenciesMet
-                        spacing: 15
+                        spacing: 12
 
                         Rectangle {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 120
+                            Layout.preferredHeight: 140
                             radius: 12
                             color: Qt.rgba(theme.dangerColor.r, theme.dangerColor.g, theme.dangerColor.b, 0.1)
                             border.color: theme.dangerColor
@@ -226,11 +229,27 @@ ShellRoot {
                                     font.pixelSize: 13
                                     horizontalAlignment: Text.AlignHCenter
                                 }
-                                Text {
+                                
+                                Rectangle {
                                     Layout.alignment: Qt.AlignHCenter
-                                    text: "Please install them to continue"
-                                    color: theme.mutedColor
-                                    font.pixelSize: 10
+                                    Layout.preferredWidth: 100
+                                    Layout.preferredHeight: 28
+                                    radius: 6
+                                    color: retryHov.containsMouse ? theme.surfaceHover : "transparent"
+                                    border.color: theme.mutedColor
+                                    border.width: 1
+                                    
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "Check Again"
+                                        color: theme.textColor
+                                        font.pixelSize: 11
+                                    }
+                                    
+                                    HoverHandler { id: retryHov }
+                                    TapHandler {
+                                        onTapped: root.runDepCheck()
+                                    }
                                 }
                             }
                         }
@@ -258,7 +277,6 @@ ShellRoot {
 
                         Item { Layout.fillHeight: true }
 
-                        // ── Capture Button ───────────────────────────────
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 44
@@ -291,13 +309,12 @@ ShellRoot {
                         onCancelClicked: root.cancelCapture()
                     }
                 }
-            } // End ColumnLayout
-
+            }
             Keys.onEscapePressed: {
                 if (root.isCapturing) root.cancelCapture();
                 else mainWindow.visible = false;
             }
             focus: true
-        } // Rectangle card
-    }   // FloatingWindow
-} // ShellRoot
+        }
+    }
+}
