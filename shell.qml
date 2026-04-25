@@ -31,31 +31,40 @@ ShellRoot {
         id: theme
     }
 
-    // ── Dependency Check ──────────────────────────────────────────────────
+    // ── Dependency Check (Reliable File-Based Method) ──────────────────────
+    property string depFilePath: "/tmp/hyprscreenshot_deps.json"
+    
     Process {
-        id: checkHyprshot
-        command: ["bash", "-c", "if which hyprshot >/dev/null 2>&1; then echo -n 'YES'; else echo -n 'NO'; fi"]
-        stdout: StdioCollector {
-            onRead: (data) => {
-                console.log("[Debug] hyprshot check result:", data);
-                root.hyprshotInstalled = (data.trim() === "YES");
+        id: depChecker
+        command: ["bash", "-c", "
+            HS=$(which hyprshot >/dev/null 2>&1 && echo true || echo false)
+            SW=$(which swappy >/dev/null 2>&1 && echo true || echo false)
+            echo \"{\\\"hyprshot\\\": $HS, \\\"swappy\\\": $SW}\" > " + root.depFilePath
+        ]
+        onRunningChanged: {
+            if (!running) {
+                depFileReader.reload();
             }
         }
     }
-    Process {
-        id: checkSwappy
-        command: ["bash", "-c", "if which swappy >/dev/null 2>&1; then echo -n 'YES'; else echo -n 'NO'; fi"]
-        stdout: StdioCollector {
-            onRead: (data) => {
-                console.log("[Debug] swappy check result:", data);
-                root.swappyInstalled = (data.trim() === "YES");
+
+    FileView {
+        id: depFileReader
+        path: root.depFilePath
+        onLoaded: {
+            try {
+                var res = JSON.parse(text());
+                root.hyprshotInstalled = res.hyprshot;
+                root.swappyInstalled = res.swappy;
+                console.log(\"[Debug] Deps loaded: hyprshot=\" + res.hyprshot + \", swappy=\" + res.swappy);
+            } catch(e) {
+                console.log(\"[Error] Failed to parse dependency file\");
             }
         }
     }
 
     Component.onCompleted: {
-        checkHyprshot.running = true;
-        checkSwappy.running = true;
+        depChecker.running = true;
     }
 
     // ── Processes ──────────────────────────────────────────────────────────
@@ -118,12 +127,15 @@ ShellRoot {
     IpcHandler {
         target: "hyprscreenshot"
         function toggle() {
-            if (!mainWindow.visible)
+            if (!mainWindow.visible) {
                 theme.reload();
+                depChecker.running = true; // Re-check dependencies on toggle
+            }
             mainWindow.visible = !mainWindow.visible;
         }
         function open() {
             theme.reload();
+            depChecker.running = true;
             mainWindow.visible = true;
         }
         function close() {
@@ -143,8 +155,10 @@ ShellRoot {
 
         color: "transparent"
         onVisibleChanged: {
-            if (visible)
+            if (visible) {
                 theme.reload();
+                depChecker.running = true;
+            }
         }
 
         Rectangle {
