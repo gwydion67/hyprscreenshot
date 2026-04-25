@@ -5,7 +5,6 @@ Features dynamic theme synchronization with Caelestia/Material You, custom confi
 
 <img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/eda625a1-631f-4a59-aa35-cff1ffca010b" />
 
-
 ## Features
 
 - **Dynamic Theming**: Automatically syncs with Caelestia's `scheme.json` or uses a custom config.
@@ -17,25 +16,34 @@ Features dynamic theme synchronization with Caelestia/Material You, custom confi
 ## Dependencies
 
 ### Required
+
 - **[quickshell](https://github.com/outfoxxed/quickshell)**: The UI engine.
 - **[hyprshot](https://github.com/Gustash/Hyprshot)**: The screen capture backend.
 - **[swappy](https://github.com/jpsurber/swappy)**: The annotation and save tool.
 
 ### Recommended
+
 - **[Caelestia](https://github.com/v-for-vandal/caelestia)**: For automatic Material You theming.
 
 ## Installation
 
 1. **Clone and Setup**:
+
    ```bash
    git clone https://github.com/gwydion67/hyprscreenshot ~/.config/quickshell/hyprscreenshot
    ```
 
 2. **First Run**:
-   Launch the GUI to generate the default configuration:
+   start the quickshell background process ( this also generates a default config )
    ```bash
-   quickshell -p ~/.config/quickshell/hyprscreenshot
+   quickshell -c hyprscreenshot
    ```
+3. **Start screenshot app**
+
+```bash
+  qs ipc -c hyprscreenshot call hyprscreenshot toggle
+
+  ```
 
 ## Configuration
 
@@ -43,17 +51,17 @@ The configuration file is located at `~/.config/quickshell/hyprscreenshot/config
 
 ```json
 {
-    "forceConfigTheme": false,
-    "customSchemePath": "",
-    "colors": {
-        "accent": "#82aaff",
-        "onAccent": "#000000",
-        "background": "#1e1e2e",
-        "card": "#181825",
-        "text": "#cdd6f4"
-    }
+  "forceConfigTheme": false,
+  "customSchemePath": "",
+  "colors": {
+      "accent": "#82aaff",
+      "onAccent": "#000000",
+      "background": "#1e1e2e",
+      "card": "#181825",
+      "text": "#cdd6f4"
+  }
 }
-```
+````
 
 - `forceConfigTheme`: Set to `true` to ignore Caelestia and use the colors defined in `config.json`.
 - `customSchemePath`: Path to a custom `scheme.json` file (similar to Caelestia's format).
