@@ -1,7 +1,7 @@
 # hyprscreenshot — QuickShell wrapper for hyprshot
 
 A Spectacle-style screenshot GUI for Hyprland, built with QuickShell.
-Features dynamic theme synchronization with Caelestia/Material You and a clean, modular design.
+Features dynamic theme synchronization with Caelestia/Material You, custom configuration support, and a clean, modular design.
 
 ```
 ┌─────────────────────────────────┐
@@ -25,43 +25,63 @@ Features dynamic theme synchronization with Caelestia/Material You and a clean, 
 
 ## Features
 
-- **Modular Design**: Refactored into reusable QML components for easy modification.
-- **Dynamic Theming**: Automatically reads colors from Caelestia's `scheme.json` (`~/.local/state/caelestia/scheme.json`).
-- **Interactive UI**: Real-time delay adjustment and capture mode selection.
-- **Countdown**: Visual countdown when a delay is set, with an option to cancel.
-- **IPC Support**: Toggle, open, or close the GUI via `quickshell ipc`.
+- **Modular Design**: Reusable QML components for easy maintenance.
+- **Dynamic Theming**: Automatically syncs with Caelestia's `scheme.json` or uses a custom config.
+- **Dependency Awareness**: Checks for `hyprshot` and `swappy` on launch and displays warnings if missing.
+- **Custom Configuration**: Change behavior and colors via `config.json`.
+- **Interactive UI**: Real-time delay adjustment and mode selection.
+- **IPC Support**: Full control via `quickshell ipc`.
 
 ## Dependencies
 
-```bash
-# Required
-hyprshot        # Screen capture backend
-swappy          # Post-capture editor and annotation tool
-bash            # Used to execute the capture command chain
+### Required
+- **[quickshell](https://github.com/outfoxxed/quickshell)**: The UI engine.
+- **[hyprshot](https://github.com/Gustash/Hyprshot)**: The screen capture backend.
+- **[swappy](https://github.com/jpsurber/swappy)**: The annotation and save tool.
 
-# QuickShell
-quickshell      # The engine running this GUI
-```
+### Recommended
+- **[Caelestia](https://github.com/v-for-vandal/caelestia)**: For automatic Material You theming.
 
 ## Installation
 
-1. Create the configuration directory:
+1. **Clone and Setup**:
    ```bash
    mkdir -p ~/.config/quickshell/hyprscreenshot/components
+   # Copy shell.qml to ~/.config/quickshell/hyprscreenshot/
+   # Copy components/*.qml to ~/.config/quickshell/hyprscreenshot/components/
    ```
 
-2. Copy the files:
-   - `shell.qml` to `~/.config/quickshell/hyprscreenshot/`
-   - All files in `components/` to `~/.config/quickshell/hyprscreenshot/components/`
-
-3. Test it:
+2. **First Run**:
+   Launch the GUI to generate the default configuration:
    ```bash
    quickshell -p ~/.config/quickshell/hyprscreenshot
    ```
 
+## Configuration
+
+The configuration file is located at `~/.config/quickshell/hyprscreenshot/config.json`.
+
+```json
+{
+    "forceConfigTheme": false,
+    "customSchemePath": "",
+    "colors": {
+        "accent": "#82aaff",
+        "onAccent": "#000000",
+        "background": "#1e1e2e",
+        "card": "#181825",
+        "text": "#cdd6f4"
+    }
+}
+```
+
+- `forceConfigTheme`: Set to `true` to ignore Caelestia and use the colors defined in `config.json`.
+- `customSchemePath`: Path to a custom `scheme.json` file (similar to Caelestia's format).
+- `colors`: Fallback or override colors for the GUI.
+
 ## Hyprland Integration
 
-Add these to your Hyprland configuration (e.g., `~/.config/hypr/hyprland.conf`):
+Add these to your `hyprland.conf`:
 
 ```ini
 # Autostart the shell component
@@ -71,28 +91,14 @@ exec-once = quickshell -c hyprscreenshot
 bind = $mainMod SHIFT, S, exec, qs ipc -c hyprscreenshot call hyprscreenshot toggle
 ```
 
-## Architecture
+## Theming Priority
 
-The project is broken down into several parts:
+1. If `forceConfigTheme` is `true`, colors are loaded from `config.json`.
+2. If `customSchemePath` is set, colors are loaded from that JSON file.
+3. By default, it looks for Caelestia's scheme at `~/.local/state/caelestia/scheme.json`.
+4. If no theme file is found, it falls back to the hardcoded defaults.
 
-- `shell.qml`: The main entry point and state controller.
-- `components/Theme.qml`: Handles dynamic color loading and theme application.
-- `components/Header.qml`: The window header with title and close button.
-- `components/CaptureModeSelector.qml`: Selection grid for Region, Window, and Full Screen.
-- `components/DelaySelector.qml`: UI for adjusting the capture delay.
-- `components/CountdownView.qml`: Overlay shown during a timed capture.
+## Keyboard Shortcuts
 
-## Theme Synchronization
-
-The GUI watches `~/.local/state/caelestia/scheme.json` for changes. If you change your system theme via Caelestia or Matugen, the GUI will update its colors instantly without requiring a restart.
-
-## Behavior
-
-1. **Select Mode**: Choose between Region (drag), Window (click), or Full Screen.
-2. **Set Delay**: Adjust the delay if you need time to set up your shot.
-3. **Capture**:
-   - If Delay is 0: Window hides and `hyprshot` triggers immediately.
-   - If Delay > 0: A countdown appears. You can **Cancel** at any time.
-4. **Annotate**: Once captured, `swappy` opens automatically for editing and saving.
-
-> ⚠️ **Note**: Screenshots are passed to `swappy` via a raw pipe. You must save the file within `swappy` to keep it.
+- `Escape`: Close window or cancel active countdown.
+- `Enter`: Trigger capture (when capture button is focused).
