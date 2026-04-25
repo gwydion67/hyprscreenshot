@@ -20,10 +20,32 @@ ShellRoot {
     property int selectedDelay: 0
     property bool isCapturing: false
     property int countdown: 0
+    
+    // Dependency State
+    property bool hyprshotInstalled: true
+    property bool swappyInstalled: true
+    readonly property bool dependenciesMet: hyprshotInstalled && swappyInstalled
 
     // ── Theme ──────────────────────────────────────────────────────────────
     Theme {
         id: theme
+    }
+
+    // ── Dependency Check ──────────────────────────────────────────────────
+    Process {
+        id: checkHyprshot
+        command: ["which", "hyprshot"]
+        onRunningChanged: if (!running) root.hyprshotInstalled = (exitCode === 0)
+    }
+    Process {
+        id: checkSwappy
+        command: ["which", "swappy"]
+        onRunningChanged: if (!running) root.swappyInstalled = (exitCode === 0)
+    }
+
+    Component.onCompleted: {
+        checkHyprshot.running = true;
+        checkSwappy.running = true;
     }
 
     // ── Processes ──────────────────────────────────────────────────────────
@@ -59,6 +81,7 @@ ShellRoot {
     }
 
     function startCapture() {
+        if (!root.dependenciesMet) return;
         root.isCapturing = true;
         if (root.selectedDelay === 0) {
             mainWindow.visible = false;
@@ -106,7 +129,7 @@ ShellRoot {
         visible: false
 
         implicitWidth: 420
-        implicitHeight: root.isCapturing ? 230 : 420
+        implicitHeight: !root.dependenciesMet ? 250 : (root.isCapturing ? 230 : 420)
 
         color: "transparent"
         onVisibleChanged: {
@@ -147,10 +170,54 @@ ShellRoot {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
+                    // ── Dependency Error UI ──────────────────────────────
+                    ColumnLayout {
+                        anchors.fill: parent
+                        visible: !root.dependenciesMet
+                        spacing: 15
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 120
+                            radius: 12
+                            color: Qt.rgba(theme.dangerColor.r, theme.dangerColor.g, theme.dangerColor.b, 0.1)
+                            border.color: theme.dangerColor
+                            border.width: 1
+
+                            ColumnLayout {
+                                anchors.centerIn: parent
+                                spacing: 8
+                                Text {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: "MISSING DEPENDENCIES"
+                                    color: theme.dangerColor
+                                    font.pixelSize: 12
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 1.2
+                                }
+                                Text {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: (root.hyprshotInstalled ? "" : "• hyprshot\n") + (root.swappyInstalled ? "" : "• swappy")
+                                    color: theme.textColor
+                                    font.pixelSize: 13
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                Text {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: "Please install them to continue"
+                                    color: theme.mutedColor
+                                    font.pixelSize: 10
+                                }
+                            }
+                        }
+
+                        Item { Layout.fillHeight: true }
+                    }
+
                     // ── Setup UI ─────────────────────────────────────────
                     ColumnLayout {
                         anchors.fill: parent
-                        visible: !root.isCapturing
+                        visible: root.dependenciesMet && !root.isCapturing
                         spacing: 0
 
                         CaptureModeSelector {
@@ -194,7 +261,7 @@ ShellRoot {
                     // ── Countdown UI ───────────────────────────────────────
                     CountdownView {
                         anchors.fill: parent
-                        visible: root.isCapturing
+                        visible: root.dependenciesMet && root.isCapturing
                         theme: theme
                         countdown: root.countdown
                         onCancelClicked: root.cancelCapture()
