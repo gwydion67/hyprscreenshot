@@ -98,7 +98,7 @@ ShellRoot {
 
     function runHyprshot() {
         var modeFlags = "-m " + selectedMode;
-        if (selectedMode === "window") modeFlags += " -m active";
+        if (selectedMode === "output") modeFlags += " -m active";
         
         var cursorFlag = theme.showCursor ? " --cursor" : "";
         var cmd = "hyprshot " + modeFlags + cursorFlag + " --freeze --raw | swappy -f -";
