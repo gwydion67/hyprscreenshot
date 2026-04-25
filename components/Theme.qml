@@ -13,6 +13,7 @@ Item {
     property int version: 0
     property bool forceConfigTheme: false
     property string customSchemePath: ""
+    property bool showCursor: false
 
     // ── Colors ─────────────────────────────────────────────────────────────
     readonly property var defaults: ({

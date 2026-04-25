@@ -272,6 +272,8 @@ ShellRoot {
                 }
             }
             Keys.onEscapePressed: isCapturing ? cancelCapture() : (mainWindow.visible = false)
+            Keys.onReturnPressed: if (dependenciesMet && !isCapturing) startCapture()
+            Keys.onEnterPressed: if (dependenciesMet && !isCapturing) startCapture()
             focus: true
         }
     }
