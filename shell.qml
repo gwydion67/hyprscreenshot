@@ -34,13 +34,23 @@ ShellRoot {
     // ── Dependency Check ──────────────────────────────────────────────────
     Process {
         id: checkHyprshot
-        command: ["which", "hyprshot"]
-        onRunningChanged: if (!running) root.hyprshotInstalled = (checkHyprshot.exitCode === 0)
+        command: ["bash", "-c", "command -v hyprshot"]
+        onRunningChanged: {
+            if (!running) {
+                root.hyprshotInstalled = (checkHyprshot.exitCode === 0);
+                console.log("[Debug] hyprshot check exitCode:", checkHyprshot.exitCode);
+            }
+        }
     }
     Process {
         id: checkSwappy
-        command: ["which", "swappy"]
-        onRunningChanged: if (!running) root.swappyInstalled = (checkSwappy.exitCode === 0)
+        command: ["bash", "-c", "command -v swappy"]
+        onRunningChanged: {
+            if (!running) {
+                root.swappyInstalled = (checkSwappy.exitCode === 0);
+                console.log("[Debug] swappy check exitCode:", checkSwappy.exitCode);
+            }
+        }
     }
 
     Component.onCompleted: {
