@@ -34,28 +34,29 @@ ShellRoot {
     // ── Dependency Check ──────────────────────────────────────────────────
     Process {
         id: checkHyprshot
-        command: ["bash", "-c", "command -v hyprshot"]
-        onRunningChanged: {
-            if (!running) {
-                root.hyprshotInstalled = (checkHyprshot.exitCode === 0);
-                console.log("[Debug] hyprshot check exitCode:", checkHyprshot.exitCode);
+        command: ["bash", "-c", "if command -v hyprshot >/dev/null; then echo 0; else echo 1; fi"]
+        running: true
+        stdout: StdioCollector {
+            onRead: (data) => {
+                root.hyprshotInstalled = (data.trim() === "0");
+                console.log("[Debug] hyprshot check result:", data.trim());
             }
         }
     }
     Process {
         id: checkSwappy
-        command: ["bash", "-c", "command -v swappy"]
-        onRunningChanged: {
-            if (!running) {
-                root.swappyInstalled = (checkSwappy.exitCode === 0);
-                console.log("[Debug] swappy check exitCode:", checkSwappy.exitCode);
+        command: ["bash", "-c", "if command -v swappy >/dev/null; then echo 0; else echo 1; fi"]
+        running: true
+        stdout: StdioCollector {
+            onRead: (data) => {
+                root.swappyInstalled = (data.trim() === "0");
+                console.log("[Debug] swappy check result:", data.trim());
             }
         }
     }
 
     Component.onCompleted: {
-        checkHyprshot.running = true;
-        checkSwappy.running = true;
+        // Processes start automatically due to running: true
     }
 
     // ── Processes ──────────────────────────────────────────────────────────
