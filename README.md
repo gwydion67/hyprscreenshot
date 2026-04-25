@@ -3,25 +3,8 @@
 A Spectacle-style screenshot GUI for Hyprland, built with QuickShell.
 Features dynamic theme synchronization with Caelestia/Material You, custom configuration support.
 
-```
-┌─────────────────────────────────┐
-│  ⊙  Screenshot   hyprshot wrpr  ✕ │
-├─────────────────────────────────┤
-│  CAPTURE MODE                   │
-│  ┌──────────────────────────┐   │
-│  │         Region           │   │
-│  └──────────────────────────┘   │
-│  ┌──────────┐  ┌──────────┐     │
-│  │  Window  │  │  Full    │     │
-│  └──────────┘  └──────────┘     │
-│  DELAY                          │
-│  [ − ]  [ 0 sec ]  [ + ]        │
-│                                 │
-│  ╔═══════════════════════════╗  │
-│  ║        Capture Now        ║  │
-│  ╚═══════════════════════════╝  │
-└─────────────────────────────────┘
-```
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/eda625a1-631f-4a59-aa35-cff1ffca010b" />
+
 
 ## Features
 
