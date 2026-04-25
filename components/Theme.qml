@@ -125,7 +125,7 @@ Item {
             "colors": theme.defaults
         };
         var text = JSON.stringify(defaultCfg, null, 4);
-        configFile.write(text);
+        configWriter.write(text);
     }
 
     function updateSchemeWatching() {
@@ -157,6 +157,11 @@ Item {
             console.log("[Theme] Config not found, creating default...");
             theme.createDefaultConfig();
         }
+    }
+
+    FileWriter {
+        id: configWriter
+        path: theme.configPath
     }
 
     FileView {

@@ -35,12 +35,12 @@ ShellRoot {
     Process {
         id: checkHyprshot
         command: ["which", "hyprshot"]
-        onRunningChanged: if (!running) root.hyprshotInstalled = (exitCode === 0)
+        onRunningChanged: if (!running) root.hyprshotInstalled = (checkHyprshot.exitCode === 0)
     }
     Process {
         id: checkSwappy
         command: ["which", "swappy"]
-        onRunningChanged: if (!running) root.swappyInstalled = (exitCode === 0)
+        onRunningChanged: if (!running) root.swappyInstalled = (checkSwappy.exitCode === 0)
     }
 
     Component.onCompleted: {
