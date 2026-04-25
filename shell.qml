@@ -97,7 +97,12 @@ ShellRoot {
     }
 
     function runHyprshot() {
-        var cmd = "hyprshot -m " + selectedMode + " --freeze --raw | swappy -f -";
+        var modeFlags = "-m " + selectedMode;
+        if (selectedMode === "window") modeFlags += " -m active";
+        
+        var cursorFlag = theme.showCursor ? " --cursor" : "";
+        var cmd = "hyprshot " + modeFlags + cursorFlag + " --freeze --raw | swappy -f -";
+        
         console.log("[Debug] Running command:", cmd);
         captureProc.command = ["bash", "-c", cmd];
         captureProc.running = true;
@@ -236,6 +241,43 @@ ShellRoot {
                             theme: theme
                             selectedDelay: root.selectedDelay
                             onSelectedDelayChanged: root.selectedDelay = selectedDelay 
+                        }
+
+                        // Cursor Toggle
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.topMargin: 12
+                            Layout.bottomMargin: 16
+                            spacing: 8
+                            
+                            Text {
+                                text: "CAPTURE CURSOR"
+                                color: theme.mutedColor
+                                font { pixelSize: 10; weight: Font.Medium; letterSpacing: 1.5 }
+                                Layout.fillWidth: true
+                            }
+                            
+                            Rectangle {
+                                width: 34; height: 18; radius: 9
+                                color: theme.showCursor ? theme.accentColor : theme.cardColor
+                                border { color: theme.showCursor ? "transparent" : theme.mutedColor; width: 1 }
+                                Behavior on color { ColorAnimation { duration: 150 } }
+                                
+                                Rectangle {
+                                    width: 12; height: 12; radius: 6
+                                    color: theme.showCursor ? theme.accentText : theme.mutedColor
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    x: theme.showCursor ? 18 : 4
+                                    Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+                                }
+                                
+                                TapHandler { 
+                                    onTapped: {
+                                        theme.showCursor = !theme.showCursor;
+                                        theme.saveConfig();
+                                    }
+                                }
+                            }
                         }
                         
                         Item { Layout.fillHeight: true }

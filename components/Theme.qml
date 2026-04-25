@@ -64,9 +64,10 @@ Item {
     function loadConfig(text) {
         try {
             var cfg = JSON.parse(text);
-            console.log("[Debug - Theme] Config loaded. forceConfigTheme:", !!cfg.forceConfigTheme);
+            console.log("[Debug - Theme] Config loaded. showCursor:", !!cfg.showCursor);
             theme.forceConfigTheme = !!cfg.forceConfigTheme;
             theme.customSchemePath = cfg.customSchemePath || "";
+            theme.showCursor = !!cfg.showCursor;
             if (cfg.colors) updateColors(cfg.colors);
             updateSchemeWatching();
         } catch (e) { console.log("[Error - Theme] Config error:", e.message); }
@@ -74,9 +75,33 @@ Item {
 
     function createDefaultConfig() {
         console.log("[Debug - Theme] Creating default config...");
-        var text = JSON.stringify({ "forceConfigTheme": false, "customSchemePath": "", "colors": defaults }, null, 4);
+        var text = JSON.stringify({ 
+            "forceConfigTheme": false, 
+            "customSchemePath": "", 
+            "showCursor": false,
+            "colors": defaults 
+        }, null, 4);
         var esc = text.replace(/'/g, "'\\''");
         configWriter.command = ["bash", "-c", "mkdir -p $(dirname '" + configPath + "') && echo '" + esc + "' > '" + configPath + "'"];
+        configWriter.running = true;
+    }
+
+    function saveConfig() {
+        var cfg = {
+            "forceConfigTheme": theme.forceConfigTheme,
+            "customSchemePath": theme.customSchemePath,
+            "showCursor": theme.showCursor,
+            "colors": {
+                "accent": accentColor.toString(),
+                "onAccent": accentText.toString(),
+                "background": bgColor.toString(),
+                "card": cardColor.toString(),
+                "text": textColor.toString()
+            }
+        };
+        var text = JSON.stringify(cfg, null, 4);
+        var esc = text.replace(/'/g, "'\\''");
+        configWriter.command = ["bash", "-c", "echo '" + esc + "' > '" + configPath + "'"];
         configWriter.running = true;
     }
 

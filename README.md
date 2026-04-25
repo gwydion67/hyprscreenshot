@@ -1,7 +1,7 @@
 # hyprscreenshot — QuickShell wrapper for hyprshot
 
 A Spectacle-style screenshot GUI for Hyprland, built with QuickShell.
-Features dynamic theme synchronization with Caelestia/Material You, custom configuration support, and a clean, modular design.
+Features dynamic theme synchronization with Caelestia/Material You, custom configuration support.
 
 ```
 ┌─────────────────────────────────┐
@@ -25,12 +25,11 @@ Features dynamic theme synchronization with Caelestia/Material You, custom confi
 
 ## Features
 
-- **Modular Design**: Reusable QML components for easy maintenance.
 - **Dynamic Theming**: Automatically syncs with Caelestia's `scheme.json` or uses a custom config.
 - **Dependency Awareness**: Checks for `hyprshot` and `swappy` on launch and displays warnings if missing.
 - **Custom Configuration**: Change behavior and colors via `config.json`.
 - **Interactive UI**: Real-time delay adjustment and mode selection.
-- **IPC Support**: Full control via `quickshell ipc`.
+- **IPC Support**: control via `quickshell ipc`.
 
 ## Dependencies
 
@@ -46,9 +45,7 @@ Features dynamic theme synchronization with Caelestia/Material You, custom confi
 
 1. **Clone and Setup**:
    ```bash
-   mkdir -p ~/.config/quickshell/hyprscreenshot/components
-   # Copy shell.qml to ~/.config/quickshell/hyprscreenshot/
-   # Copy components/*.qml to ~/.config/quickshell/hyprscreenshot/components/
+2. git clone https://github.com/gwydion67/hyprscreenshot ~/.config/quickshell/hyprscreenshot
    ```
 
 2. **First Run**:
