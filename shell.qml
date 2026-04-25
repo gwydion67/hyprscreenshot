@@ -113,11 +113,21 @@ ShellRoot {
     IpcHandler {
         target: "hyprscreenshot"
         function toggle() {
-            if (!mainWindow.visible) { theme.reload(); runDepCheck(); }
+            if (!mainWindow.visible) {
+                theme.reload();
+                runDepCheck();
+            }
             mainWindow.visible = !mainWindow.visible;
         }
-        function open() { theme.reload(); runDepCheck(); mainWindow.visible = true; }
-        function close() { if (isCapturing) cancelCapture(); mainWindow.visible = false; }
+        function open() {
+            theme.reload();
+            runDepCheck();
+            mainWindow.visible = true;
+        }
+        function close() {
+            if (isCapturing) cancelCapture();
+            mainWindow.visible = false;
+        }
     }
 
     FloatingWindow {
@@ -126,7 +136,12 @@ ShellRoot {
         implicitWidth: 420
         implicitHeight: !dependenciesMet ? 280 : (isCapturing ? 230 : 420)
         color: "transparent"
-        onVisibleChanged: if (visible) { theme.reload(); runDepCheck(); }
+        onVisibleChanged: {
+            if (visible) {
+                theme.reload();
+                runDepCheck();
+            }
+        }
 
         Rectangle {
             anchors.fill: parent

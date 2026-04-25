@@ -21,7 +21,8 @@ ColumnLayout {
             Layout.preferredWidth: 36; Layout.preferredHeight: 36; radius: 8
             color: minHov.containsMouse ? theme.surfaceHover : theme.cardColor
             Text { anchors.centerIn: parent; text: "−"; color: selectedDelay > 0 ? theme.textColor : theme.mutedColor; font.pixelSize: 20 }
-            HoverHandler { id: minHov }; TapHandler { onTapped: if (selectedDelay > 0) selectedDelay-- }
+            HoverHandler { id: minHov }
+            TapHandler { onTapped: if (selectedDelay > 0) selectedDelay-- }
         }
 
         Rectangle {
@@ -57,7 +58,8 @@ ColumnLayout {
             Layout.preferredWidth: 36; Layout.preferredHeight: 36; radius: 8
             color: plusHov.containsMouse ? theme.surfaceHover : theme.cardColor
             Text { anchors.centerIn: parent; text: "+"; color: theme.textColor; font.pixelSize: 20 }
-            HoverHandler { id: plusHov }; TapHandler { onTapped: selectedDelay++ }
+            HoverHandler { id: plusHov }
+            TapHandler { onTapped: selectedDelay++ }
         }
     }
 }

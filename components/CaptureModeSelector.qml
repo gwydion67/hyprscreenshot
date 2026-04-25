@@ -44,7 +44,8 @@ ColumnLayout {
                     }
                     Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.sub; color: selector.theme.mutedColor; font.pixelSize: 10 }
                 }
-                HoverHandler { id: mHov }; TapHandler { onTapped: selector.selectedMode = modelData.key }
+                HoverHandler { id: mHov }
+                TapHandler { onTapped: selector.selectedMode = modelData.key }
             }
         }
     }
