@@ -28,7 +28,7 @@ Features dynamic theme synchronization with Caelestia/Material You, custom confi
 
 1. **Clone and Setup**:
    ```bash
-2. git clone https://github.com/gwydion67/hyprscreenshot ~/.config/quickshell/hyprscreenshot
+   git clone https://github.com/gwydion67/hyprscreenshot ~/.config/quickshell/hyprscreenshot
    ```
 
 2. **First Run**:
