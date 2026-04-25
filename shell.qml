@@ -1,10 +1,6 @@
 // ┌─────────────────────────────────────────────────────────────────────────┐
 // │  hyprscreenshot — QuickShell wrapper for hyprshot                       │
-// │  Place at:  ~/.config/quickshell/hyprscreenshot/shell.qml               │
-// │  Autostart: exec-once = qs -c hyprscreenshot                            │
-// │  Toggle:    qs ipc -c hyprscreenshot call hyprscreenshot toggle         │
 // └─────────────────────────────────────────────────────────────────────────┘
-
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -21,76 +17,43 @@ ShellRoot {
     property bool isCapturing: false
     property int countdown: 0
     
-    // Dependency State (Explicitly reactive)
+    // Dependency State
     property bool hyprshotInstalled: false
     property bool swappyInstalled: false
-    property bool dependenciesMet: hyprshotInstalled && swappyInstalled
+    readonly property bool dependenciesMet: hyprshotInstalled && swappyInstalled
 
-    onHyprshotInstalledChanged: console.log("[Debug] HS property updated:", hyprshotInstalled)
-    onSwappyInstalledChanged: console.log("[Debug] SW property updated:", swappyInstalled)
-    onDependenciesMetChanged: console.log("[Debug] dependenciesMet updated:", dependenciesMet)
+    Theme { id: theme }
 
-    // ── Theme ──────────────────────────────────────────────────────────────
-    Theme {
-        id: theme
-    }
-
-    // ── Dependency Check (Reliable File-Based Method) ──────────────────────
-    property string depFilePath: "/tmp/hyprscreenshot_deps.json"
-    
-    function runDepCheck() {
-        console.log("[Debug] Running dependency check...");
-        depChecker.running = true;
-    }
+    // ── Dependency Check ──────────────────────────────────────────────────
+    function runDepCheck() { depChecker.running = true; }
 
     Process {
         id: depChecker
-        command: ["bash", "-c", "HS=$(which hyprshot >/dev/null 2>&1 && echo true || echo false); SW=$(which swappy >/dev/null 2>&1 && echo true || echo false); echo \"{\\\"hyprshot\\\": $HS, \\\"swappy\\\": $SW}\" > " + root.depFilePath]
-        onRunningChanged: {
-            if (!running) {
-                depFileReader.reload();
-            }
-        }
+        command: ["bash", "-c", "echo \"{\\\"h\\\": $(which hyprshot >/dev/null 2>&1 && echo true || echo false), \\\"s\\\": $(which swappy >/dev/null 2>&1 && echo true || echo false)}\" > /tmp/hss_deps.json"]
+        onRunningChanged: if (!running) depFileReader.reload()
     }
 
     FileView {
         id: depFileReader
-        path: root.depFilePath
+        path: "/tmp/hss_deps.json"
         onLoaded: {
             try {
                 var res = JSON.parse(text());
-                // Force boolean type casting
-                root.hyprshotInstalled = !!res.hyprshot;
-                root.swappyInstalled = !!res.swappy;
-                console.log("[Debug] File read: hyprshot=" + root.hyprshotInstalled + ", swappy=" + root.swappyInstalled);
-            } catch(e) {
-                console.log("[Error] JSON parse failed for dependencies");
-            }
+                root.hyprshotInstalled = !!res.h;
+                root.swappyInstalled = !!res.s;
+            } catch(e) {}
         }
     }
 
-    Component.onCompleted: {
-        runDepCheck();
-    }
+    // ── Capture Logic ──────────────────────────────────────────────────────
+    Process { id: captureProc; onRunningChanged: if (!running) root.isCapturing = false }
 
-    // ── Processes ──────────────────────────────────────────────────────────
-    Process {
-        id: captureProc
-        onRunningChanged: {
-            if (!running) {
-                root.isCapturing = false;
-            }
-        }
-    }
-
-    // ── Countdown → hide → capture chain ──────────────────────────────────
     Timer {
         id: countdownTimer
         interval: 1000
         repeat: true
         onTriggered: {
-            root.countdown--;
-            if (root.countdown <= 0) {
+            if (--root.countdown <= 0) {
                 stop();
                 mainWindow.visible = false;
                 freezeDelay.start();
@@ -98,23 +61,23 @@ ShellRoot {
         }
     }
 
-    Timer {
-        id: freezeDelay
-        interval: 380
-        repeat: false
-        onTriggered: runHyprshot()
-    }
+    Timer { id: freezeDelay; interval: 380; onTriggered: runHyprshot() }
 
     function startCapture() {
-        if (!root.dependenciesMet) return;
-        root.isCapturing = true;
-        if (root.selectedDelay === 0) {
+        if (!dependenciesMet) return;
+        if (selectedDelay === 0) {
             mainWindow.visible = false;
             freezeDelay.start();
         } else {
-            root.countdown = root.selectedDelay;
+            root.countdown = selectedDelay;
+            root.isCapturing = true;
             countdownTimer.start();
         }
+    }
+
+    function runHyprshot() {
+        captureProc.command = ["bash", "-c", "hyprshot -m " + selectedMode + " --freeze --raw | swappy -f -"];
+        captureProc.running = true;
     }
 
     function cancelCapture() {
@@ -123,54 +86,25 @@ ShellRoot {
         root.countdown = 0;
     }
 
-    function runHyprshot() {
-        var cmd = "hyprshot -m " + root.selectedMode + " --freeze --raw | swappy -f -";
-        captureProc.command = ["bash", "-c", cmd];
-        captureProc.running = true;
-    }
-
-    // ── IPC ────────────────────────────────────────────────────────────────
     IpcHandler {
         target: "hyprscreenshot"
         function toggle() {
-            if (!mainWindow.visible) {
-                theme.reload();
-                runDepCheck();
-            }
+            if (!mainWindow.visible) { theme.reload(); runDepCheck(); }
             mainWindow.visible = !mainWindow.visible;
         }
-        function open() {
-            theme.reload();
-            runDepCheck();
-            mainWindow.visible = true;
-        }
-        function close() {
-            if (root.isCapturing)
-                root.cancelCapture();
-            mainWindow.visible = false;
-        }
+        function open() { theme.reload(); runDepCheck(); mainWindow.visible = true; }
+        function close() { if (isCapturing) cancelCapture(); mainWindow.visible = false; }
     }
 
-    // ── Window ─────────────────────────────────────────────────────────────
     FloatingWindow {
         id: mainWindow
         visible: false
-
         implicitWidth: 420
-        implicitHeight: !root.dependenciesMet ? 280 : (root.isCapturing ? 230 : 420)
-
+        implicitHeight: !dependenciesMet ? 280 : (isCapturing ? 230 : 420)
         color: "transparent"
-        onVisibleChanged: {
-            if (visible) {
-                theme.reload();
-                runDepCheck();
-            }
-        }
+        onVisibleChanged: if (visible) { theme.reload(); runDepCheck(); }
 
         Rectangle {
-            id: card
-            property int _forceUpdate: theme.version
-
             anchors.fill: parent
             radius: 14
             color: theme.bgColor
@@ -178,143 +112,60 @@ ShellRoot {
             border.width: 1
             clip: true
 
-            Rectangle {
-                anchors { top: parent.top; left: parent.left; right: parent.right }
-                height: 1
-                color: theme.rimLight
-            }
+            Rectangle { anchors { top: parent.top; left: parent.left; right: parent.right }; height: 1; color: theme.rimLight }
 
             ColumnLayout {
-                anchors { fill: parent; margins: 20 }
-                spacing: 0
-
-                Header {
-                    theme: theme
-                    onCloseClicked: mainWindow.visible = false
-                }
+                anchors { fill: parent; margins: 20 }; spacing: 0
+                Header { theme: theme; onCloseClicked: mainWindow.visible = false }
 
                 Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    Layout.fillWidth: true; Layout.fillHeight: true
 
-                    // ── Dependency Error UI ──────────────────────────────
+                    // Error UI
                     ColumnLayout {
-                        anchors.fill: parent
-                        visible: !root.dependenciesMet
-                        spacing: 12
-
+                        anchors.fill: parent; visible: !dependenciesMet; spacing: 12
                         Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 140
-                            radius: 12
+                            Layout.fillWidth: true; Layout.preferredHeight: 140; radius: 12
                             color: Qt.rgba(theme.dangerColor.r, theme.dangerColor.g, theme.dangerColor.b, 0.1)
-                            border.color: theme.dangerColor
-                            border.width: 1
-
+                            border.color: theme.dangerColor; border.width: 1
                             ColumnLayout {
-                                anchors.centerIn: parent
-                                spacing: 8
-                                Text {
-                                    Layout.alignment: Qt.AlignHCenter
-                                    text: "MISSING DEPENDENCIES"
-                                    color: theme.dangerColor
-                                    font.pixelSize: 12
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1.2
-                                }
-                                Text {
-                                    Layout.alignment: Qt.AlignHCenter
-                                    text: (root.hyprshotInstalled ? "" : "• hyprshot\n") + (root.swappyInstalled ? "" : "• swappy")
-                                    color: theme.textColor
-                                    font.pixelSize: 13
-                                    horizontalAlignment: Text.AlignHCenter
-                                }
-                                
+                                anchors.centerIn: parent; spacing: 8
+                                Text { Layout.alignment: Qt.AlignHCenter; text: "MISSING DEPENDENCIES"; color: theme.dangerColor; font { pixelSize: 12; weight: Font.Bold; letterSpacing: 1.2 } }
+                                Text { Layout.alignment: Qt.AlignHCenter; text: (hyprshotInstalled ? "" : "• hyprshot\n") + (swappyInstalled ? "" : "• swappy"); color: theme.textColor; font.pixelSize: 13; horizontalAlignment: Text.AlignHCenter }
                                 Rectangle {
-                                    Layout.alignment: Qt.AlignHCenter
-                                    Layout.preferredWidth: 100
-                                    Layout.preferredHeight: 28
-                                    radius: 6
-                                    color: retryHov.containsMouse ? theme.surfaceHover : "transparent"
-                                    border.color: theme.mutedColor
-                                    border.width: 1
-                                    
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "Check Again"
-                                        color: theme.textColor
-                                        font.pixelSize: 11
-                                    }
-                                    
-                                    HoverHandler { id: retryHov }
-                                    TapHandler {
-                                        onTapped: root.runDepCheck()
-                                    }
+                                    Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 100; Layout.preferredHeight: 28; radius: 6
+                                    color: retryHov.containsMouse ? theme.surfaceHover : "transparent"; border { color: theme.mutedColor; width: 1 }
+                                    Text { anchors.centerIn: parent; text: "Check Again"; color: theme.textColor; font.pixelSize: 11 }
+                                    HoverHandler { id: retryHov }; TapHandler { onTapped: runDepCheck() }
                                 }
                             }
                         }
-
                         Item { Layout.fillHeight: true }
                     }
 
-                    // ── Setup UI ─────────────────────────────────────────
+                    // Main UI
                     ColumnLayout {
-                        anchors.fill: parent
-                        visible: root.dependenciesMet && !root.isCapturing
-                        spacing: 0
-
-                        CaptureModeSelector {
-                            theme: theme
-                            selectedMode: root.selectedMode
-                            onSelectedModeChanged: root.selectedMode = selectedMode
-                        }
-
-                        DelaySelector {
-                            theme: theme
-                            selectedDelay: root.selectedDelay
-                            onSelectedDelayChanged: root.selectedDelay = selectedDelay
-                        }
-
+                        anchors.fill: parent; visible: dependenciesMet && !isCapturing; spacing: 0
+                        CaptureModeSelector { theme: theme; selectedMode: root.selectedMode; onSelectedModeChanged: root.selectedMode = selectedMode }
+                        DelaySelector { theme: theme; selectedDelay: root.selectedDelay; onSelectedDelayChanged: root.selectedDelay = selectedDelay }
                         Item { Layout.fillHeight: true }
-
                         Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 44
-                            radius: 10
+                            Layout.fillWidth: true; Layout.preferredHeight: 44; radius: 10
                             color: capHov.containsMouse ? Qt.darker(theme.accentColor, 1.08) : theme.accentColor
                             scale: capHov.containsMouse ? 0.975 : 1.0
-
                             Behavior on color { ColorAnimation { duration: 110 } }
                             Behavior on scale { NumberAnimation { duration: 90; easing.type: Easing.OutQuad } }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: root.selectedDelay > 0 ? "Capture in " + root.selectedDelay + "s" : "Capture Now"
-                                color: theme.accentText
-                                font.pixelSize: 14
-                                font.weight: Font.Medium
-                            }
-
-                            HoverHandler { id: capHov }
-                            TapHandler { onTapped: root.startCapture() }
+                            Text { anchors.centerIn: parent; text: selectedDelay > 0 ? "Capture in " + selectedDelay + "s" : "Capture Now"; color: theme.accentText; font { pixelSize: 14; weight: Font.Medium } }
+                            HoverHandler { id: capHov }; TapHandler { onTapped: startCapture() }
                         }
                     }
 
-                    // ── Countdown UI ───────────────────────────────────────
-                    CountdownView {
-                        anchors.fill: parent
-                        visible: root.dependenciesMet && root.isCapturing
-                        theme: theme
-                        countdown: root.countdown
-                        onCancelClicked: root.cancelCapture()
-                    }
+                    CountdownView { anchors.fill: parent; visible: dependenciesMet && isCapturing; theme: theme; countdown: root.countdown; onCancelClicked: cancelCapture() }
                 }
             }
-            Keys.onEscapePressed: {
-                if (root.isCapturing) root.cancelCapture();
-                else mainWindow.visible = false;
-            }
+            Keys.onEscapePressed: isCapturing ? cancelCapture() : (mainWindow.visible = false)
             focus: true
         }
     }
+    Component.onCompleted: runDepCheck()
 }
