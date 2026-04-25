@@ -125,7 +125,16 @@ Item {
             "colors": theme.defaults
         };
         var text = JSON.stringify(defaultCfg, null, 4);
-        configWriter.write(text);
+        
+        // Escape single quotes for the bash command
+        var escapedText = text.replace(/'/g, "'\\''");
+        configWriterProc.command = ["bash", "-c", "mkdir -p $(dirname '" + theme.configPath + "') && echo '" + escapedText + "' > '" + theme.configPath + "'"];
+        configWriterProc.running = true;
+    }
+
+    Process {
+        id: configWriterProc
+        onRunningChanged: if (!running && exitCode === 0) configFile.reload()
     }
 
     function updateSchemeWatching() {
@@ -157,11 +166,6 @@ Item {
             console.log("[Theme] Config not found, creating default...");
             theme.createDefaultConfig();
         }
-    }
-
-    FileWriter {
-        id: configWriter
-        path: theme.configPath
     }
 
     FileView {
