@@ -14,6 +14,7 @@ Item {
     property bool forceConfigTheme: false
     property string customSchemePath: ""
     property bool showCursor: false
+    property string annotator: "swappy"
 
     // ── Colors ─────────────────────────────────────────────────────────────
     readonly property var defaults: ({
@@ -68,6 +69,7 @@ Item {
             theme.forceConfigTheme = !!cfg.forceConfigTheme;
             theme.customSchemePath = cfg.customSchemePath || "";
             theme.showCursor = !!cfg.showCursor;
+            theme.annotator = cfg.annotator || "swappy";
             if (cfg.colors) updateColors(cfg.colors);
             updateSchemeWatching();
         } catch (e) { console.log("[Error - Theme] Config error:", e.message); }
@@ -79,6 +81,7 @@ Item {
             "forceConfigTheme": false, 
             "customSchemePath": "", 
             "showCursor": false,
+            "annotator": "swappy",
             "colors": defaults 
         }, null, 4);
         var esc = text.replace(/'/g, "'\\''");
@@ -91,6 +94,7 @@ Item {
             "forceConfigTheme": theme.forceConfigTheme,
             "customSchemePath": theme.customSchemePath,
             "showCursor": theme.showCursor,
+            "annotator": theme.annotator,
             "colors": {
                 "accent": accentColor.toString(),
                 "onAccent": accentText.toString(),

@@ -20,10 +20,12 @@ ShellRoot {
     // Dependency State
     property bool hyprshotInstalled: false
     property bool swappyInstalled: false
-    readonly property bool dependenciesMet: hyprshotInstalled && swappyInstalled
+    property bool sattyInstalled: false
+    readonly property bool dependenciesMet: hyprshotInstalled && (swappyInstalled || sattyInstalled)
 
     onHyprshotInstalledChanged: console.log("[Debug] hyprshotInstalled:", hyprshotInstalled)
     onSwappyInstalledChanged: console.log("[Debug] swappyInstalled:", swappyInstalled)
+    onSattyInstalledChanged: console.log("[Debug] sattyInstalled:", sattyInstalled)
     onDependenciesMetChanged: console.log("[Debug] dependenciesMet:", dependenciesMet)
 
     Theme { id: theme }
@@ -36,7 +38,7 @@ ShellRoot {
 
     Process {
         id: depChecker
-        command: ["bash", "-c", "echo \"{\\\"h\\\": $(which hyprshot >/dev/null 2>&1 && echo true || echo false), \\\"s\\\": $(which swappy >/dev/null 2>&1 && echo true || echo false)}\" > /tmp/hss_deps.json"]
+        command: ["bash", "-c", "echo \"{\\\"h\\\": $(which hyprshot >/dev/null 2>&1 && echo true || echo false), \\\"s\\\": $(which swappy >/dev/null 2>&1 && echo true || echo false), \\\"sat\\\": $(which satty >/dev/null 2>&1 && echo true || echo false)}\" > /tmp/hss_deps.json"]
         onRunningChanged: if (!running) depFileReader.reload()
     }
 
@@ -48,6 +50,17 @@ ShellRoot {
                 var res = JSON.parse(text());
                 root.hyprshotInstalled = !!res.h;
                 root.swappyInstalled = !!res.s;
+                root.sattyInstalled = !!res.sat;
+                
+                // Fallback if selected annotator is not installed
+                if (theme.annotator === "swappy" && !root.swappyInstalled && root.sattyInstalled) {
+                    theme.annotator = "satty";
+                    theme.saveConfig();
+                } else if (theme.annotator === "satty" && !root.sattyInstalled && root.swappyInstalled) {
+                    theme.annotator = "swappy";
+                    theme.saveConfig();
+                }
+
                 console.log("[Debug] Dependency file loaded:", text().trim());
             } catch(e) {
                 console.log("[Error] Dependency parse failed");
@@ -101,7 +114,8 @@ ShellRoot {
         if (selectedMode === "output") modeFlags += " -m active";
         
         var cursorFlag = theme.showCursor ? " --cursor" : "";
-        var cmd = "hyprshot " + modeFlags + cursorFlag + " --freeze --raw | swappy -f -";
+        var annotatorCmd = theme.annotator === "satty" ? "satty --filename -" : "swappy -f -";
+        var cmd = "hyprshot " + modeFlags + cursorFlag + " --freeze --raw | " + annotatorCmd;
         
         console.log("[Debug] Running command:", cmd);
         captureProc.command = ["bash", "-c", cmd];
@@ -139,7 +153,7 @@ ShellRoot {
         id: mainWindow
         visible: false
         implicitWidth: 420
-        implicitHeight: !dependenciesMet ? 280 : (isCapturing ? 230 : 420)
+        implicitHeight: !dependenciesMet ? 280 : (isCapturing ? 230 : 500)
         color: "transparent"
         onVisibleChanged: {
             if (visible) {
@@ -199,7 +213,8 @@ ShellRoot {
                                 }
                                 Text { 
                                     Layout.alignment: Qt.AlignHCenter
-                                    text: (hyprshotInstalled ? "" : "• hyprshot\n") + (swappyInstalled ? "" : "• swappy")
+                                    text: (hyprshotInstalled ? "" : "• hyprshot\n") + 
+                                          ((!swappyInstalled && !sattyInstalled) ? "• swappy or satty" : "")
                                     color: theme.textColor
                                     font.pixelSize: 13
                                     horizontalAlignment: Text.AlignHCenter 
@@ -235,6 +250,17 @@ ShellRoot {
                             theme: theme
                             selectedMode: root.selectedMode
                             onSelectedModeChanged: root.selectedMode = selectedMode 
+                        }
+
+                        AnnotatorSelector {
+                            theme: theme
+                            selectedAnnotator: theme.annotator
+                            swappyAvailable: root.swappyInstalled
+                            sattyAvailable: root.sattyInstalled
+                            onSelectedAnnotatorChanged: {
+                                theme.annotator = selectedAnnotator;
+                                theme.saveConfig();
+                            }
                         }
                         
                         DelaySelector { 
